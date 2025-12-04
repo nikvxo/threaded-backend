@@ -42,6 +42,40 @@ app.post('/api/outfits', (req, res) => {
   res.status(201).json(newOutfit);
 });
 
+// update outfit
+app.put('/api/outfits/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { title, tags } = req.body;
+
+  const outfit = outfits.find(o => o.id === id);
+  if (!outfit) {
+    return res.status(404).json({ error: 'Outfit not found' });
+  }
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: "Title is required" });
+  }
+
+  outfit.title = title.trim();
+  outfit.tags = Array.isArray(tags) ? tags : outfit.tags;
+
+  res.json(outfit);
+});
+
+// delete outfit
+app.delete('/api/outfits/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = outfits.findIndex(o => o.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Outfit not found' });
+  }
+
+  const deleted = outfits[index];
+  outfits.splice(index, 1);
+  res.json(deleted);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
