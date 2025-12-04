@@ -10,9 +10,22 @@ app.use(express.json());
 
 // temporary data (no DB yet)
 let outfits = [
-  { id: 1, title: "Black jeans + white tee", tags: ["casual"] },
-  { id: 2, title: "Navy suit", tags: ["formal"] }
+  { 
+    id: 1, 
+    title: "Black jeans + white tee", 
+    tags: ["casual"], 
+    mood: "chill",
+    createdAt: new Date().toISOString(),
+  },
+  { 
+    id: 2, 
+    title: "Navy suit", 
+    tags: ["formal"],
+    mood: "confident",
+    createdAt: new Date().toISOString(),
+  }
 ];
+
 
 // health check
 app.get('/api/health', (req, res) => {
@@ -26,7 +39,7 @@ app.get('/api/outfits', (req, res) => {
 
 // create new outfit
 app.post('/api/outfits', (req, res) => {
-  const { title, tags } = req.body;
+  const { title, tags, mood } = req.body;
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: "Title is required" });
@@ -35,17 +48,19 @@ app.post('/api/outfits', (req, res) => {
   const newOutfit = {
     id: outfits.length ? outfits[outfits.length - 1].id + 1 : 1,
     title: title.trim(),
-    tags: tags || []
+    tags: Array.isArray(tags) ? tags : [],
+    mood: mood || '',
+    createdAt: new Date().toISOString(),
   };
 
   outfits.push(newOutfit);
   res.status(201).json(newOutfit);
 });
 
-// update outfit
+
 app.put('/api/outfits/:id', (req, res) => {
   const id = Number(req.params.id);
-  const { title, tags } = req.body;
+  const { title, tags, mood } = req.body;
 
   const outfit = outfits.find(o => o.id === id);
   if (!outfit) {
@@ -58,9 +73,11 @@ app.put('/api/outfits/:id', (req, res) => {
 
   outfit.title = title.trim();
   outfit.tags = Array.isArray(tags) ? tags : outfit.tags;
+  outfit.mood = typeof mood === 'string' ? mood : outfit.mood;
 
   res.json(outfit);
 });
+
 
 // delete outfit
 app.delete('/api/outfits/:id', (req, res) => {
