@@ -1,31 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+const { Prisma } = require('@prisma/client/extension');
 
 const app = express();
+const primsa = new PrismaClient(); 
 
 // middleware
 app.use(cors());
 app.use(express.json());
-
-// temporary data (no DB yet)
-let outfits = [
-  { 
-    id: 1, 
-    title: "Black jeans + white tee", 
-    tags: ["casual"], 
-    mood: "chill",
-    createdAt: new Date().toISOString(),
-  },
-  { 
-    id: 2, 
-    title: "Navy suit", 
-    tags: ["formal"],
-    mood: "confident",
-    createdAt: new Date().toISOString(),
-  }
-];
-
 
 // health check
 app.get('/api/health', (req, res) => {
@@ -33,8 +17,25 @@ app.get('/api/health', (req, res) => {
 });
 
 // get all outfits
-app.get('/api/outfits', (req, res) => {
-  res.json(outfits);
+app.get('/api/outfits', async (req, res) => {
+  try {
+    const outfits = await primsa.outfit.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const result = outfits.map(o => ({
+      id: o.id,
+      title: o.title,
+      tags: JSON.parse(o.tagsJson),
+      mood: o.mood,
+      createdAt: o.createdAt,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load outfits' });
+  }
 });
 
 // create new outfit
@@ -57,7 +58,7 @@ app.post('/api/outfits', (req, res) => {
   res.status(201).json(newOutfit);
 });
 
-
+// update outfit
 app.put('/api/outfits/:id', (req, res) => {
   const id = Number(req.params.id);
   const { title, tags, mood } = req.body;
