@@ -1,11 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
-const { Prisma } = require('@prisma/client/extension');
-
 const app = express();
-const primsa = new PrismaClient(); 
+
 
 // middleware
 app.use(cors());
@@ -19,7 +16,7 @@ app.get('/api/health', (req, res) => {
 // get all outfits
 app.get('/api/outfits', async (req, res) => {
   try {
-    const outfits = await primsa.outfit.findMany({
+    const outfits = await prisma.outfit.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
