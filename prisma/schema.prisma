@@ -23,6 +23,7 @@ model Outfit {
   title     String
   tagsJson  String   @default("[]")
   mood      String   @default("")
+  imageUrl  String   @default("")
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

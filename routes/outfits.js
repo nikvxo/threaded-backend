@@ -1,12 +1,9 @@
 // routes/outfits.js
 import express from 'express';
-import multer from 'multer';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-//import { supabase } from '../lib/supabase.js'; // if you do images
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 // All routes here require auth
 router.use(requireAuth);
@@ -38,7 +35,7 @@ router.get('/', async (req, res) => {
 // POST /api/outfits
 router.post('/', async (req, res) => {
   try {
-    const { title, tags, mood } = req.body;
+    const { title, tags, mood, imageUrl } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
@@ -49,6 +46,7 @@ router.post('/', async (req, res) => {
         title: title.trim(),
         tagsJson: JSON.stringify(Array.isArray(tags) ? tags : []),
         mood: typeof mood === 'string' ? mood : '',
+        imageUrl: typeof imageUrl === 'string' ? imageUrl : '',
         userId: req.user.id,
       },
     });
@@ -71,7 +69,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { title, tags, mood } = req.body;
+    const { title, tags, mood, imageUrl } = req.body;
 
     if (!Number.isInteger(id)) {
       return res.status(400).json({ error: 'Invalid id' });
@@ -93,7 +91,7 @@ router.put('/:id', async (req, res) => {
     if (typeof mood === 'string') data.mood = mood;
 
     const updated = await prisma.outfit.update({
-      where: { id },
+      where: { id, userId: req.user.id },
       data,
     });
 
@@ -151,51 +149,5 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// OPTIONAL: POST /api/outfits/:id/image (image upload)
-// router.post('/:id/image', upload.single('image'), async (req, res) => {
-//   try {
-//     const id = Number(req.params.id);
-//     if (!Number.isInteger(id)) {
-//       return res.status(400).json({ error: 'Invalid id' });
-//     }
-
-//     const outfit = await prisma.outfit.findFirst({
-//       where: { id, userId: req.user.id },
-//     });
-//     if (!outfit) {
-//       return res.status(404).json({ error: 'Outfit not found' });
-//     }
-
-//     if (!req.file) {
-//       return res.status(400).json({ error: 'No file uploaded' });
-//     }
-
-//     const ext = req.file.originalname.split('.').pop();
-//     const path = `outfits/${req.user.id}/${id}-${Date.now()}.${ext}`;
-
-//     const { error: uploadError } = await supabase.storage
-//       .from('fitplanner')
-//       .upload(path, req.file.buffer, {
-//         contentType: req.file.mimetype,
-//         upsert: true,
-//       });
-
-//     if (uploadError) throw uploadError;
-
-//     const { data: publicData } = supabase.storage
-//       .from('fitplanner')
-//       .getPublicUrl(path);
-
-//     const updated = await prisma.outfit.update({
-//       where: { id },
-//       data: { imageUrl: publicData.publicUrl },
-//     });
-
-//     res.json({ imageUrl: updated.imageUrl });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Image upload failed' });
-//   }
-// });
 
 export default router;
