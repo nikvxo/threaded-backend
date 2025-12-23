@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import outfitsRoutes from './routes/outfits.js';
+import uploadRoutes from './routes/upload.js';
 
 const app = express();
 
@@ -39,6 +40,10 @@ app.get('/api/health', (req, res) => {
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/outfits', outfitsRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// static files
+app.use('/uploads', express.static('uploads'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
