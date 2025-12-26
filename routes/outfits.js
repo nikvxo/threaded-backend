@@ -8,24 +8,54 @@ const router = express.Router();
 // All routes here require auth
 router.use(requireAuth);
 
+/**
+ * A helper function to find or create clothing items for a user.
+ * This implements the "tag-to-item" logic where we can create items on the fly.
+ * @param {string[]} itemNames - An array of names for the clothing items.
+ * @param {number} userId - The ID of the user.
+ * @returns {Promise<Array<{id: number}>>} - An array of objects to be used in a Prisma connect query.
+ */
+const findOrCreateItems = async (itemNames, userId) => {
+  const itemConnects = [];
+
+  // Ensure we have a default category to assign to new items.
+  const category = await prisma.category.upsert({
+    where: { name: 'Uncategorized' },
+    update: {},
+    create: { name: 'Uncategorized' },
+  });
+
+  for (const name of itemNames) {
+    let item = await prisma.clothingItem.findFirst({
+      where: { name, userId },
+    });
+
+    if (!item) {
+      item = await prisma.clothingItem.create({
+        data: {
+          name,
+          userId,
+          categoryId: category.id,
+        },
+      });
+    }
+    itemConnects.push({ id: item.id });
+  }
+
+  return itemConnects;
+};
+
 // GET /api/outfits
 router.get('/', async (req, res) => {
   try {
     const outfits = await prisma.outfit.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { wornOn: 'desc' },
+      include: {
+        items: true, // Include the related clothing items
+      },
     });
-
-    const result = outfits.map((o) => ({
-      id: o.id,
-      title: o.title,
-      tags: JSON.parse(o.tagsJson),
-      mood: o.mood,
-      imageUrl: o.imageUrl,
-      createdAt: o.createdAt,
-    }));
-
-    res.json(result);
+    res.json(outfits);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to load outfits' });
@@ -35,30 +65,31 @@ router.get('/', async (req, res) => {
 // POST /api/outfits
 router.post('/', async (req, res) => {
   try {
-    const { title, tags, mood, imageUrl } = req.body;
+    const { title, imageUrl, wornOn, itemNames } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    // Use our helper to get the IDs of the items, creating them if necessary
+    const itemConnects = await findOrCreateItems(itemNames || [], req.user.id);
+
     const created = await prisma.outfit.create({
       data: {
         title: title.trim(),
-        tagsJson: JSON.stringify(Array.isArray(tags) ? tags : []),
-        mood: typeof mood === 'string' ? mood : '',
         imageUrl: typeof imageUrl === 'string' ? imageUrl : '',
+        wornOn: wornOn ? new Date(wornOn) : new Date(),
         userId: req.user.id,
+        items: {
+          connect: itemConnects, // Connect the outfit to the clothing items
+        },
+      },
+      include: {
+        items: true,
       },
     });
 
-    res.status(201).json({
-      id: created.id,
-      title: created.title,
-      tags: JSON.parse(created.tagsJson),
-      mood: created.mood,
-      imageUrl: created.imageUrl,
-      createdAt: created.createdAt,
-    });
+    res.status(201).json(created);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create outfit' });
@@ -69,7 +100,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { title, tags, mood, imageUrl } = req.body;
+    const { title, imageUrl, wornOn, itemNames } = req.body;
 
     if (!Number.isInteger(id)) {
       return res.status(400).json({ error: 'Invalid id' });
@@ -78,7 +109,7 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // ensure ownership
+    // Ensure ownership
     const existing = await prisma.outfit.findFirst({
       where: { id, userId: req.user.id },
     });
@@ -86,23 +117,26 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Outfit not found' });
     }
 
-    const data = { title: title.trim() };
-    if (Array.isArray(tags)) data.tagsJson = JSON.stringify(tags);
-    if (typeof mood === 'string') data.mood = mood;
+    // Use our helper to get the IDs of the items for the update
+    const itemConnects = await findOrCreateItems(itemNames || [], req.user.id);
 
     const updated = await prisma.outfit.update({
-      where: { id, userId: req.user.id },
-      data,
+      where: { id },
+      data: {
+        title: title.trim(),
+        imageUrl: typeof imageUrl === 'string' ? imageUrl : existing.imageUrl,
+        wornOn: wornOn ? new Date(wornOn) : existing.wornOn,
+        items: {
+          // Replace the old list of items with the new one
+          set: itemConnects,
+        },
+      },
+      include: {
+        items: true,
+      },
     });
 
-    res.json({
-      id: updated.id,
-      title: updated.title,
-      tags: JSON.parse(updated.tagsJson),
-      mood: updated.mood,
-      imageUrl: updated.imageUrl,
-      createdAt: updated.createdAt,
-    });
+    res.json(updated);
   } catch (err) {
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Outfit not found' });
@@ -120,7 +154,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid id' });
     }
 
-    // ensure ownership
+    // Ensure ownership before deleting
     const existing = await prisma.outfit.findFirst({
       where: { id, userId: req.user.id },
     });
@@ -128,18 +162,11 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Outfit not found' });
     }
 
-    const deleted = await prisma.outfit.delete({
+    await prisma.outfit.delete({
       where: { id },
     });
 
-    res.json({
-      id: deleted.id,
-      title: deleted.title,
-      tags: JSON.parse(deleted.tagsJson),
-      mood: deleted.mood,
-      imageUrl: deleted.imageUrl,
-      createdAt: deleted.createdAt,
-    });
+    res.status(204).send(); // Send a 204 No Content response for successful deletion
   } catch (err) {
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Outfit not found' });
@@ -148,6 +175,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete outfit' });
   }
 });
-
 
 export default router;

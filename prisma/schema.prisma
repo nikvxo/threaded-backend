@@ -10,24 +10,40 @@ datasource db {
   provider = "sqlite"
 }
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique 
-  passwordHash  String 
-  name          String? 
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String
+  name          String?
   outfits       Outfit[]
-  createdAt     DateTime  @default(now())
+  clothingItems ClothingItem[]
+  createdAt     DateTime       @default(now())
+}
+
+model Category {
+  id    Int            @id @default(autoincrement())
+  name  String         @unique
+  items ClothingItem[]
+}
+
+model ClothingItem {
+  id         Int      @id @default(autoincrement())
+  name       String
+  imageUrl   String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  outfits    Outfit[]
 }
 
 model Outfit {
   id        Int      @id @default(autoincrement())
   title     String
-  tagsJson  String   @default("[]")
-  mood      String   @default("")
   imageUrl  String   @default("")
+  wornOn    DateTime @default(now())
   createdAt DateTime @default(now())
-
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-
-
+  items     ClothingItem[]
 }
