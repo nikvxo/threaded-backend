@@ -1,8 +1,0 @@
--- CreateTable
-CREATE TABLE "Outfit" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "title" TEXT NOT NULL,
-    "tags_json" TEXT NOT NULL,
-    "mood" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
