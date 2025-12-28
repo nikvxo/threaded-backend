@@ -6,7 +6,7 @@ A RESTful API backend for managing your wardrobe and creating outfit combination
 
 - **Live API:** https://threaded-backend-viab.onrender.com
 - **Frontend App:** https://threaded-seven.vercel.app
-- **Frontend Repo:** *(add your frontend repo URL)*
+- **Frontend Repo:** *([Frontend Repo](https://github.com/nikvxo/threaded-frontend))*
 
 ## Tech Stack
 
