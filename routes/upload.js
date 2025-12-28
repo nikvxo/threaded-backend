@@ -1,31 +1,62 @@
 // routes/upload.js
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { requireAuth } from '../middleware/requireAuth.js';
+import crypto from 'crypto';
+import path from 'path';
 
 const router = express.Router();
 
 // All routes here require auth
 router.use(requireAuth);
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+// Configure S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-const upload = multer({ storage: storage });
+// Configure multer to store files in memory
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
-router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send({ error: 'No file uploaded.' });
+router.post('/', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send({ error: 'No file uploaded.' });
+    }
+
+    // Generate unique filename
+    const fileExtension = path.extname(req.file.originalname);
+    const fileName = `${crypto.randomBytes(16).toString('hex')}${fileExtension}`;
+    const key = `uploads/${fileName}`;
+
+    // Upload to S3
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+    });
+
+    await s3Client.send(command);
+
+    // Generate public URL
+    const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+    res.status(201).send({ imageUrl });
+  } catch (error) {
+    console.error('S3 upload error:', error);
+    res.status(500).send({ error: 'Failed to upload image' });
   }
-  res.status(201).send({ imageUrl: `/uploads/${req.file.filename}` });
 });
 
 export default router;

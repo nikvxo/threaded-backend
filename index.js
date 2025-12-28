@@ -44,9 +44,6 @@ app.use('/api/outfits', outfitsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/clothing', clothingRoutes);
 
-// static files
-app.use('/uploads', express.static('uploads'));
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
