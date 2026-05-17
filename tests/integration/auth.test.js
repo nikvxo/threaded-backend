@@ -30,3 +30,20 @@ it('should register a new user and return token', async () => {
     expect(response.body.user.passwordHash).toBeUndefined();
     expect(response.body.token).toBeTypeOf('string');
 });
+
+it('should login an existing user and return a token', async () => {
+    const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: testEmail, password: 'password123'})
+        .expect(200);
+    
+    expect(response.body.user).toMatchObject({ email: testEmail });
+    expect(response.body.user.passwordHash).toBeUndefined();
+    expect(response.body.token).toBeTypeOf('string');
+
+    const me = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${response.body.token}`)
+        .expect(200); 
+    expect(me.body.user.email).toBe(testEmail); 
+});
