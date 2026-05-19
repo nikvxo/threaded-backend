@@ -4,17 +4,9 @@ import bcrypt from 'bcrypt';
 import { prisma } from '../lib/prisma.js';
 import { createToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { sanitizeUser } from '../lib/sanitize.js'; 
 
 const router = express.Router();
-
-function sanitizeUser(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    createdAt: user.createdAt,
-  };
-}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
