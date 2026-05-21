@@ -1,5 +1,6 @@
 // index.js
 import 'dotenv/config';
+import './lib/config.js';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
