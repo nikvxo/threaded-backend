@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: threaded
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: threaded
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://threaded:pass@db:5432/threaded"
+      JWT_SECRET: "dev-secret-123456"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+      FRONTEND_URL: ${FRONTEND_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app:delegated
+    command: sh -c "npx prisma db push && node index.js"
+
+volumes:
+  db-data:
