@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "vitest"
-  },
+"scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js",
+  "test": "vitest",
+  "db:up": "docker compose up -d db",
+  "db:down": "docker compose down -v",
+  "db:push": "DATABASE_URL=\"postgresql://threaded:pass@localhost:5432/threaded\" NODE_ENV=test npx prisma db push",
+  "test:local": "npm run db:up && npm run db:push && npm test && npm run db:down"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nikvxo/threaded-backend.git"

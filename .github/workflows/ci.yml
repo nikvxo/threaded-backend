@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: threaded
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: threaded
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U threaded -d threaded"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://threaded:pass@localhost:5432/threaded
+      JWT_SECRET: dev-secret-123456
+      AWS_ACCESS_KEY_ID: test-key
+      AWS_SECRET_ACCESS_KEY: test-secret
+      AWS_REGION: us-west-1
+      AWS_BUCKET_NAME: test-bucket
+      FRONTEND_URL: http://localhost:5173
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Push Prisma schema
+        run: npx prisma db push
+
+      - name: Run tests
+        run: npm test
