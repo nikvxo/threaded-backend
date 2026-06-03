@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for threaded-backend
 
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20.19-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
@@ -13,7 +13,7 @@ COPY . .
 RUN npx prisma generate
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:20.19-alpine AS runner
 WORKDIR /app
 
 # Install production deps
