@@ -8,6 +8,7 @@ import outfitsRoutes from './routes/outfits.js';
 import uploadRoutes from './routes/upload.js';
 import clothingRoutes from './routes/clothing.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use(
 
 // JSON body
 app.use(express.json());
+app.use(requestLogger);
 
 // health check
 app.get('/api/health', (req, res) => {
