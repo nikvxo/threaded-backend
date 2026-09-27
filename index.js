@@ -8,6 +8,7 @@ import outfitsRoutes from './routes/outfits.js';
 import uploadRoutes from './routes/upload.js';
 import clothingRoutes from './routes/clothing.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { notFound } from './middleware/notFound.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/outfits', outfitsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/clothing', clothingRoutes);
 
+app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
