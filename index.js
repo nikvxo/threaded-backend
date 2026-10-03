@@ -3,6 +3,7 @@ import 'dotenv/config';
 import './lib/config.js';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
 import outfitsRoutes from './routes/outfits.js';
 import uploadRoutes from './routes/upload.js';
@@ -12,6 +13,8 @@ import { notFound } from './middleware/notFound.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
 const app = express();
+
+app.use(helmet());
 
 // CORS
 const allowedOrigins = [
