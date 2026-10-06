@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { createToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { sanitizeUser } from '../lib/sanitize.js'; 
+import { loginLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 

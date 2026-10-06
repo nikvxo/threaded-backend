@@ -47,3 +47,21 @@ it('should login an existing user and return a token', async () => {
         .expect(200); 
     expect(me.body.user.email).toBe(testEmail); 
 });
+
+it('should rate limit repeated login attempts', async () => {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+        await request(app)
+            .post('/api/auth/login')
+            .send({})
+            .expect(400);
+    }
+
+    const response = await request(app)
+        .post('/api/auth/login')
+        .send({})
+        .expect(429);
+
+    expect(response.body).toEqual({
+        error: 'Too many login attempts, please try again later',
+    });
+});
