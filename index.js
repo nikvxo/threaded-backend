@@ -38,7 +38,7 @@ app.use(
 );
 
 // JSON body
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(requestLogger);
 
 // health check
